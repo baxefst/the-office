@@ -1,0 +1,230 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with personal risk limits and starting capital.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 120 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "teamId": { "type": "string", "maxLength": 64 },
+        "role": { "type": "string", "enum": ["owner", "member"] },
+        "startingBalance": { "type": "number" },
+        "riskLimits": { "type": "object" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "displayName", "email", "createdAt"]
+    },
+    "Team": {
+      "title": "Team",
+      "description": "The collaborative trading group entity.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 100 },
+        "ownerUid": { "type": "string", "maxLength": 128 },
+        "ownerEmail": { "type": "string", "maxLength": 120 },
+        "maxMembers": { "type": "number" },
+        "inviteCode": { "type": "string", "maxLength": 64 },
+        "settings": { "type": "object" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "ownerUid", "maxMembers", "createdAt"]
+    },
+    "TeamMember": {
+      "title": "TeamMember",
+      "description": "Approved membership record in a trading team.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "teamId": { "type": "string", "maxLength": 64 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 120 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "role": { "type": "string", "enum": ["owner", "member"] },
+        "status": { "type": "string", "enum": ["approved", "pending", "invited"] },
+        "joinedAt": { "type": "string" }
+      },
+      "required": ["userId", "teamId", "displayName", "email", "role", "status", "joinedAt"]
+    },
+    "SharedWatchlistToken": {
+      "title": "SharedWatchlistToken",
+      "description": "Token tracked collaboratively by the team.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "teamId": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 100 },
+        "symbol": { "type": "string", "maxLength": 30 },
+        "mintAddress": { "type": "string", "maxLength": 64 },
+        "category": { "type": "string", "enum": ["new_launch", "established"] },
+        "marketCap": { "type": "number" },
+        "liquidity": { "type": "number" },
+        "volume24h": { "type": "number" },
+        "price": { "type": "number" },
+        "change24h": { "type": "number" },
+        "dataSource": { "type": "string", "maxLength": 50 },
+        "addedByUid": { "type": "string", "maxLength": 128 },
+        "addedByName": { "type": "string", "maxLength": 100 },
+        "assignedResearcherUid": { "type": "string", "maxLength": 128 },
+        "assignedResearcherName": { "type": "string", "maxLength": 100 },
+        "researchStatus": { "type": "string", "enum": ["unreviewed", "in_review", "approved", "rejected"] },
+        "riskStatus": { "type": "string", "enum": ["low", "medium", "high", "extreme"] },
+        "sharedNotes": { "type": "string", "maxLength": 2000 },
+        "monitoringReason": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "teamId", "name", "symbol", "mintAddress", "category", "addedByUid", "researchStatus", "riskStatus", "createdAt"]
+    },
+    "PersonalWatchlistToken": {
+      "title": "PersonalWatchlistToken",
+      "description": "Token stored in an individual user's private watchlist.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "mintAddress": { "type": "string", "maxLength": 64 },
+        "symbol": { "type": "string", "maxLength": 30 },
+        "name": { "type": "string", "maxLength": 100 },
+        "personalNotes": { "type": "string", "maxLength": 2000 },
+        "addedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "mintAddress", "symbol", "name", "addedAt"]
+    },
+    "TokenResearch": {
+      "title": "TokenResearch",
+      "description": "Deep-dive token research report created by a team researcher.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "teamId": { "type": "string", "maxLength": 64 },
+        "tokenMint": { "type": "string", "maxLength": 64 },
+        "tokenSymbol": { "type": "string", "maxLength": 30 },
+        "tokenName": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 200 },
+        "thesis": { "type": "string", "maxLength": 4000 },
+        "liquidityObservations": { "type": "string", "maxLength": 2000 },
+        "holderDistributionObservations": { "type": "string", "maxLength": 2000 },
+        "devWalletObservations": { "type": "string", "maxLength": 2000 },
+        "manipulationIndicators": { "type": "string", "maxLength": 2000 },
+        "researcherUid": { "type": "string", "maxLength": 128 },
+        "researcherName": { "type": "string", "maxLength": 100 },
+        "researchStatus": { "type": "string", "enum": ["unreviewed", "in_review", "approved", "rejected"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "lastModifiedByUid": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "teamId", "tokenMint", "tokenSymbol", "tokenName", "title", "thesis", "researcherUid", "researchStatus", "createdAt"]
+    },
+    "MonitoredWallet": {
+      "title": "MonitoredWallet",
+      "description": "A public Solana wallet tracked for deployer, whale, or smart money research.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "teamId": { "type": "string", "maxLength": 64 },
+        "address": { "type": "string", "maxLength": 64 },
+        "label": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "enum": ["deployer", "trader", "whale", "related", "unknown"] },
+        "reason": { "type": "string", "maxLength": 1000 },
+        "notes": { "type": "string", "maxLength": 3000 },
+        "addedByUid": { "type": "string", "maxLength": 128 },
+        "addedByName": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "teamId", "address", "label", "category", "addedByUid", "createdAt"]
+    },
+    "PaperTrade": {
+      "title": "PaperTrade",
+      "description": "Simulated paper trade execution record for performance analytics.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "teamId": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userDisplayName": { "type": "string", "maxLength": 100 },
+        "tokenMint": { "type": "string", "maxLength": 64 },
+        "tokenSymbol": { "type": "string", "maxLength": 30 },
+        "direction": { "type": "string", "enum": ["long", "short"] },
+        "entryPrice": { "type": "number" },
+        "exitPrice": { "type": "number" },
+        "quantity": { "type": "number" },
+        "entryTimestamp": { "type": "string" },
+        "exitTimestamp": { "type": "string" },
+        "estimatedFees": { "type": "number" },
+        "estimatedSlippage": { "type": "number" },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "realizedPnl": { "type": "number" },
+        "unrealizedPnl": { "type": "number" },
+        "strategy": { "type": "string", "maxLength": 100 },
+        "entryRationale": { "type": "string", "maxLength": 2000 },
+        "exitRationale": { "type": "string", "maxLength": 2000 },
+        "lessonsLearned": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "teamId", "userId", "tokenMint", "tokenSymbol", "direction", "entryPrice", "quantity", "entryTimestamp", "status", "createdAt"]
+    },
+    "TeamActivity": {
+      "title": "TeamActivity",
+      "description": "Audit and activity event in the shared trading room.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "teamId": { "type": "string", "maxLength": 64 },
+        "actorUid": { "type": "string", "maxLength": 128 },
+        "actorDisplayName": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "maxLength": 50 },
+        "recordRef": { "type": "string", "maxLength": 64 },
+        "recordType": { "type": "string", "maxLength": 50 },
+        "summary": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "teamId", "actorUid", "actorDisplayName", "type", "summary", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "User profile document isolated per UID."
+    },
+    "/teams/{teamId}": {
+      "schema": { "$ref": "Team" },
+      "description": "Team workspace document."
+    },
+    "/teams/{teamId}/members/{userId}": {
+      "schema": { "$ref": "TeamMember" },
+      "description": "Team membership record defining authorized members and roles."
+    },
+    "/teams/{teamId}/sharedWatchlist/{tokenId}": {
+      "schema": { "$ref": "SharedWatchlistToken" },
+      "description": "Collaborative watchlist tokens."
+    },
+    "/personalWatchlists/{userId}/tokens/{tokenId}": {
+      "schema": { "$ref": "PersonalWatchlistToken" },
+      "description": "User's personal private watchlist tokens."
+    },
+    "/teams/{teamId}/tokenResearch/{researchId}": {
+      "schema": { "$ref": "TokenResearch" },
+      "description": "Detailed token research submissions."
+    },
+    "/teams/{teamId}/monitoredWallets/{walletId}": {
+      "schema": { "$ref": "MonitoredWallet" },
+      "description": "Solana wallets monitored by team researchers."
+    },
+    "/teams/{teamId}/paperTrades/{tradeId}": {
+      "schema": { "$ref": "PaperTrade" },
+      "description": "Paper trades logged by members for performance tracking."
+    },
+    "/teams/{teamId}/activity/{activityId}": {
+      "schema": { "$ref": "TeamActivity" },
+      "description": "Team activity feed events."
+    }
+  }
+}

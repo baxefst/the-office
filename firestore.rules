@@ -1,0 +1,208 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Team membership check via Master Gate
+    function isTeamMember(teamId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)).data.status == 'approved';
+    }
+
+    function isTeamOwner(teamId) {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/teams/$(teamId)) &&
+         get(/databases/$(database)/documents/teams/$(teamId)).data.ownerUid == request.auth.uid) ||
+        (exists(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)).data.role == 'owner' &&
+         get(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)).data.status == 'approved')
+      );
+    }
+
+    // --- Entity Validation Helpers ---
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128 && data.uid == request.auth.uid &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.email is string && data.email.size() <= 120 &&
+             (!('startingBalance' in data) || data.startingBalance is number) &&
+             (!('role' in data) || data.role in ['owner', 'member']);
+    }
+
+    function isValidTeam(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.ownerUid is string && data.ownerUid.size() <= 128 &&
+             data.maxMembers is number && data.maxMembers <= 10;
+    }
+
+    function isValidTeamMember(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.teamId is string && data.teamId.size() <= 64 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.role in ['owner', 'member'] &&
+             data.status in ['approved', 'pending', 'invited'];
+    }
+
+    function isValidSharedToken(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.teamId is string && data.teamId.size() <= 64 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.symbol is string && data.symbol.size() <= 30 &&
+             data.mintAddress is string && data.mintAddress.size() <= 64 &&
+             data.category in ['new_launch', 'established'] &&
+             data.researchStatus in ['unreviewed', 'in_review', 'approved', 'rejected'] &&
+             data.riskStatus in ['low', 'medium', 'high', 'extreme'];
+    }
+
+    function isValidPersonalToken(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.mintAddress is string && data.mintAddress.size() <= 64 &&
+             data.symbol is string && data.symbol.size() <= 30 &&
+             data.name is string && data.name.size() <= 100;
+    }
+
+    function isValidResearch(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.teamId is string && data.teamId.size() <= 64 &&
+             data.tokenMint is string && data.tokenMint.size() <= 64 &&
+             data.tokenSymbol is string && data.tokenSymbol.size() <= 30 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.thesis is string && data.thesis.size() <= 4000 &&
+             data.researcherUid is string && data.researcherUid.size() <= 128 &&
+             data.researchStatus in ['unreviewed', 'in_review', 'approved', 'rejected'];
+    }
+
+    function isValidWallet(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.teamId is string && data.teamId.size() <= 64 &&
+             data.address is string && data.address.size() <= 64 &&
+             data.label is string && data.label.size() <= 100 &&
+             data.category in ['deployer', 'trader', 'whale', 'related', 'unknown'];
+    }
+
+    function isValidPaperTrade(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.teamId is string && data.teamId.size() <= 64 &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.tokenMint is string && data.tokenMint.size() <= 64 &&
+             data.tokenSymbol is string && data.tokenSymbol.size() <= 30 &&
+             data.direction in ['long', 'short'] &&
+             data.entryPrice is number && data.entryPrice >= 0 &&
+             data.quantity is number && data.quantity > 0 &&
+             data.status in ['open', 'closed'];
+    }
+
+    function isValidActivity(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.teamId is string && data.teamId.size() <= 64 &&
+             data.actorUid is string && data.actorUid == request.auth.uid &&
+             data.summary is string && data.summary.size() <= 500;
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && (resource == null || resource.data.uid == request.auth.uid);
+      allow create: if isUser(userId) && isValidUser(incoming());
+      allow update: if isUser(userId) && isValidUser(incoming()) && incoming().uid == existing().uid;
+      allow delete: if false;
+    }
+
+    // --- Personal Watchlists Collection ---
+    match /personalWatchlists/{userId}/tokens/{tokenId} {
+      allow get, list: if isUser(userId);
+      allow create: if isUser(userId) && isValidId(tokenId) && isValidPersonalToken(incoming());
+      allow update: if isUser(userId) && isValidId(tokenId) && isValidPersonalToken(incoming());
+      allow delete: if isUser(userId);
+    }
+
+    // --- Teams Collection ---
+    match /teams/{teamId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(teamId) && isValidTeam(incoming()) && incoming().ownerUid == request.auth.uid;
+      allow update: if isTeamOwner(teamId) && isValidTeam(incoming()) && incoming().ownerUid == existing().ownerUid;
+      allow delete: if false;
+
+      // Team Members
+      match /members/{memberUserId} {
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn() && isValidId(memberUserId) && isValidTeamMember(incoming()) &&
+          (isTeamOwner(teamId) || (memberUserId == request.auth.uid && incoming().status == 'pending'));
+        allow update: if isTeamOwner(teamId) && isValidTeamMember(incoming());
+        allow delete: if isTeamOwner(teamId);
+      }
+
+      // Shared Watchlist
+      match /sharedWatchlist/{tokenId} {
+        allow get, list: if isTeamMember(teamId);
+        allow create: if isTeamMember(teamId) && isValidId(tokenId) && isValidSharedToken(incoming());
+        allow update: if isTeamMember(teamId) && isValidId(tokenId) && isValidSharedToken(incoming());
+        allow delete: if isTeamMember(teamId);
+      }
+
+      // Token Research
+      match /tokenResearch/{researchId} {
+        allow get, list: if isTeamMember(teamId);
+        allow create: if isTeamMember(teamId) && isValidId(researchId) && isValidResearch(incoming());
+        allow update: if isTeamMember(teamId) && isValidId(researchId) && isValidResearch(incoming());
+        allow delete: if isTeamMember(teamId);
+      }
+
+      // Monitored Wallets
+      match /monitoredWallets/{walletId} {
+        allow get, list: if isTeamMember(teamId);
+        allow create: if isTeamMember(teamId) && isValidId(walletId) && isValidWallet(incoming());
+        allow update: if isTeamMember(teamId) && isValidId(walletId) && isValidWallet(incoming());
+        allow delete: if isTeamMember(teamId);
+      }
+
+      // Paper Trades
+      match /paperTrades/{tradeId} {
+        allow get, list: if isTeamMember(teamId);
+        allow create: if isTeamMember(teamId) && isValidId(tradeId) && isValidPaperTrade(incoming());
+        allow update: if isTeamMember(teamId) && isValidId(tradeId) && isValidPaperTrade(incoming()) && existing().userId == request.auth.uid;
+        allow delete: if isTeamMember(teamId) && existing().userId == request.auth.uid;
+      }
+
+      // Activity Feed (Immutable logs)
+      match /activity/{activityId} {
+        allow get, list: if isTeamMember(teamId);
+        allow create: if isTeamMember(teamId) && isValidId(activityId) && isValidActivity(incoming());
+        allow update, delete: if false;
+      }
+    }
+
+    // Connection test document
+    match /test/{docId} {
+      allow read: if true;
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "TradeSync — Team Trading Intelligence Dashboard",
+  "description": "Collaborative research, risk monitoring, and paper-trading intelligence dashboard for Solana trading teams.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
